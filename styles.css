@@ -679,6 +679,17 @@ main {
 
 .upload-type-btn.youtube-type svg { fill: #ff0000; }
 .upload-type-btn.dropbox-type svg { fill: var(--dropbox); }
+.upload-type-btn.link-type svg { fill: #9c27b0; }
+.upload-type-btn.link-type.active {
+    border-color: #9c27b0;
+    background: rgba(156, 39, 176, 0.1);
+}
+
+.input-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
 
 .upload-type-btn h3 {
     font-size: 1rem;
