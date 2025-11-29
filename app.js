@@ -112,27 +112,45 @@ function updateStatus(status, message) {
 }
 
 // ===== JSONP fetch =====
-function fetchJsonp(url) {
+let jsonpCounter = 0;
+function fetchJsonp(url, retries = 2) {
     return new Promise((resolve, reject) => {
-        const callbackName = 'jsonpCallback_' + Date.now();
+        jsonpCounter++;
+        const callbackName = 'jsonpCallback_' + jsonpCounter + '_' + Date.now();
         const script = document.createElement('script');
-        const timeout = setTimeout(() => {
-            cleanup();
-            reject(new Error('リクエストがタイムアウトしました'));
-        }, 30000);
+        
+        // コールバック関数を先にグローバルに登録
         window[callbackName] = (data) => {
             cleanup();
             resolve(data);
         };
+        
+        const timeout = setTimeout(() => {
+            cleanup();
+            if (retries > 0) {
+                console.log('リトライ中... 残り' + retries + '回');
+                fetchJsonp(url, retries - 1).then(resolve).catch(reject);
+            } else {
+                reject(new Error('リクエストがタイムアウトしました'));
+            }
+        }, 60000);
+        
         function cleanup() {
             clearTimeout(timeout);
-            delete window[callbackName];
+            if (window[callbackName]) delete window[callbackName];
             if (script.parentNode) script.parentNode.removeChild(script);
         }
+        
         script.onerror = () => {
             cleanup();
-            reject(new Error('スクリプトの読み込みに失敗しました'));
+            if (retries > 0) {
+                console.log('エラー発生、リトライ中... 残り' + retries + '回');
+                fetchJsonp(url, retries - 1).then(resolve).catch(reject);
+            } else {
+                reject(new Error('スクリプトの読み込みに失敗しました'));
+            }
         };
+        
         script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
         document.body.appendChild(script);
     });
