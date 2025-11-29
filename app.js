@@ -454,7 +454,10 @@ function fuzzyMatch(text, searchQueries) {
 function getFilteredVideos() {
     let filtered = videos;
     if (currentFilter === 'Bookmarks') {
-        filtered = videos.filter(v => isBookmarked(v.id));
+        filtered = videos.filter((v, idx) => {
+            const vid = v.id !== undefined ? v.id : idx;
+            return isBookmarked(vid);
+        });
     } else if (currentFilter !== 'All') {
         filtered = videos.filter(v => v.category === currentFilter);
     }
@@ -546,7 +549,7 @@ function renderGallery(reset = true) {
         const sourceLabel = isExternal ? getExternalLinkDomain(video.videoUrl) : ({ youtube: 'YouTube', vimeo: 'Vimeo', instagram: 'Instagram', dropbox: 'Dropbox', unknown: 'Other' }[source] || source);
         const videoId = video.id !== undefined ? video.id : index;
         const bookmarked = isBookmarked(videoId);
-        const isSelected = selectedVideos.has(video.id);
+        const isSelected = selectedVideos.has(videoId);
         const canDownload = source === 'dropbox';
         
         // 外部リンクの場合はリンクアイコン、それ以外は再生アイコン
@@ -1908,7 +1911,7 @@ function toggleVideoSelection(index, event) {
     event.stopPropagation();
     const filteredVideos = getFilteredVideos();
     const video = filteredVideos[index];
-    const videoId = video.id;
+    const videoId = video.id !== undefined ? video.id : index;
     const card = event.currentTarget;
     if (selectedVideos.has(videoId)) {
         selectedVideos.delete(videoId);
@@ -1927,7 +1930,10 @@ function updateSelectionCount() {
 
 function selectAllVideos() {
     const filteredVideos = getFilteredVideos();
-    filteredVideos.forEach(video => selectedVideos.add(video.id));
+    filteredVideos.forEach((video, index) => {
+        const videoId = video.id !== undefined ? video.id : index;
+        selectedVideos.add(videoId);
+    });
     document.querySelectorAll('.video-card').forEach(card => card.classList.add('selected'));
     updateSelectionCount();
 }
@@ -2031,7 +2037,10 @@ async function moveSelectedToTrash() {
     if (count === 0) { alert('動画を選択してください'); return; }
     if (!confirm(`選択した${count}件の動画をゴミ箱に移動しますか？`)) return;
     showLoading(`${count}件の動画をゴミ箱に移動中...`);
-    const videosToDelete = videos.filter(v => selectedVideos.has(v.id));
+    const videosToDelete = videos.filter((v, idx) => {
+        const vid = v.id !== undefined ? v.id : idx;
+        return selectedVideos.has(vid);
+    });
     for (const video of videosToDelete) {
         try {
             await postToGas({ action: 'deleteVideo', id: video.id, category: video.category });
@@ -2040,7 +2049,10 @@ async function moveSelectedToTrash() {
         }
         moveToTrash(video);
     }
-    videos = videos.filter(v => !selectedVideos.has(v.id));
+    videos = videos.filter((v, idx) => {
+        const vid = v.id !== undefined ? v.id : idx;
+        return !selectedVideos.has(vid);
+    });
     hideLoading();
     exitSelectMode();
     renderGallery();
