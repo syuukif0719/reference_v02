@@ -1777,23 +1777,22 @@ select.form-input { cursor: pointer; }
 /* 選択ツールバー */
 .selection-toolbar {
     position: fixed;
-    bottom: -80px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--bg-secondary);
     border: 1px solid #333;
     border-radius: 12px;
     padding: 12px 20px;
-    display: flex;
+    display: none;
     align-items: center;
     gap: 16px;
     z-index: 1000;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    transition: bottom 0.3s ease;
 }
 
 .selection-toolbar.active {
-    bottom: 30px;
+    display: flex;
 }
 
 .selection-count {
