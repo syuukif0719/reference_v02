@@ -211,7 +211,8 @@ nav {
 }
 
 main {
-    padding: 310px 3rem 3rem;
+    padding: 3rem 3rem 3rem;
+    padding-top: 310px; /* デフォルト値、JSで動的に調整 */
     margin-left: 180px;
     margin-right: 180px;
 }
@@ -1697,7 +1698,7 @@ select.form-input { cursor: pointer; }
     
     /* メイン領域調整 */
     main { 
-        padding: 200px 1rem 2rem;
+        padding: 200px 1rem 2rem; /* デフォルト値、JSで動的に調整 */
         margin-left: 0;
         margin-right: 0;
     }
