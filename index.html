@@ -68,11 +68,8 @@
             <div class="filters" id="filters">
                 <button class="filter-btn active" onclick="filterVideos('All')">All</button>
                 <!-- カテゴリボタンは_Categoriesシートから動的に生成 -->
-                <button class="filter-btn add-category-filter-btn" onclick="showAddCategoryModal()" title="カテゴリを追加">
-                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/></svg>
-                </button>
             </div>
-            <div class="sort-container">
+            <div class="sort-container" style="margin-left: auto;">
                 <span class="sort-label">並び替え:</span>
                 <select class="sort-select" id="sort-select" onchange="sortVideos()">
                     <option value="date-desc">追加日（新しい）</option>
