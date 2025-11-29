@@ -369,6 +369,17 @@ main {
     color: #000;
 }
 
+.filter-btn.bookmark-filter {
+    display: flex;
+    align-items: center;
+}
+
+.filter-btn.bookmark-filter.active {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
 .filter-btn.bookmark-filter:hover {
     background: #ffc107;
     border-color: #ffc107;
@@ -1205,6 +1216,10 @@ select.form-input { cursor: pointer; }
     font-size: 0.95rem;
 }
 
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ブックマーク一覧モーダル */
 .bookmarks-modal-inner {
     max-width: 900px;
@@ -1521,6 +1536,188 @@ select.form-input { cursor: pointer; }
     height: 48px;
     fill: #333;
     margin-bottom: 1rem;
+}
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+    /* 基本フォントサイズを小さく */
+    html {
+        font-size: 13px;
+    }
+    
+    /* ヘッダー調整 */
+    .header-top {
+        padding: 0.5rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .header-bottom { 
+        padding: 0 1rem 0.5rem;
+        margin-top: 20px;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .header-bottom .search-bar {
+        max-width: none;
+    }
+    
+    /* ロゴを小さく */
+    .logo {
+        font-size: 1.2rem;
+    }
+    
+    .logo-subtitle {
+        font-size: 0.5rem;
+    }
+    
+    /* ナビボタンを小さく */
+    nav {
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+    
+    nav .nav-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+    
+    nav .nav-btn span {
+        display: none;
+    }
+    
+    .bookmark-nav-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+    
+    .bookmark-nav-btn span:not(.bookmark-count) {
+        display: none;
+    }
+    
+    .select-mode-btn {
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .select-mode-btn span {
+        display: none;
+    }
+    
+    .trash-btn {
+        padding: 0.4rem 0.6rem;
+    }
+    
+    /* メイン領域調整 */
+    main { 
+        padding: 180px 1rem 2rem;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    /* 検索バー */
+    .search-bar {
+        padding: 0.4rem 0.75rem;
+    }
+    
+    .search-bar input {
+        font-size: 0.85rem;
+    }
+    
+    /* フィルターボタン */
+    .filter-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+    }
+    
+    /* ギャラリー */
+    .gallery {
+        gap: 0.8rem;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+    
+    .card-title {
+        font-size: 0.7rem;
+    }
+    
+    .card-meta {
+        font-size: 0.55rem;
+    }
+    
+    .category {
+        font-size: 0.5rem;
+        padding: 0.1rem 0.3rem;
+    }
+    
+    .date {
+        font-size: 0.55rem;
+    }
+    
+    .card-content {
+        padding: 0.5rem;
+    }
+    
+    .action-btn {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .action-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    /* アップロードモーダル */
+    .upload-type-selector { 
+        flex-direction: column; 
+    }
+    
+    /* ブックマーク */
+    .bookmarks-grid { 
+        grid-template-columns: 1fr 1fr; 
+    }
+    
+    /* 選択ツールバー */
+    .selection-toolbar {
+        padding: 8px 12px;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .selection-toolbar button {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .selection-count {
+        min-width: auto;
+        font-size: 12px;
+    }
+    
+    /* モーダル */
+    .modal {
+        margin: 1rem;
+        max-height: 85vh;
+    }
+    
+    .modal-title {
+        font-size: 1.5rem;
+    }
+    
+    .modal-actions {
+        flex-wrap: wrap;
+    }
+    
+    .modal-action-btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 /* 複数選択モード */
@@ -1884,174 +2081,4 @@ select.form-input { cursor: pointer; }
     height: 64px;
     fill: #333;
     margin-bottom: 1rem;
-}
-
-/* スマホ対応 */
-@media (max-width: 768px) {
-    html {
-        font-size: 13px;
-    }
-    
-    .header-top {
-        padding: 0.5rem 1rem;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    
-    .header-bottom { 
-        padding: 0 1rem 0.5rem;
-        margin-top: 20px;
-        margin-left: 0;
-        margin-right: 0;
-    }
-    
-    .header-bottom .search-bar {
-        max-width: none;
-    }
-    
-    .logo {
-        font-size: 1.2rem;
-    }
-    
-    .logo-subtitle {
-        font-size: 0.5rem;
-    }
-    
-    nav {
-        gap: 0.4rem;
-        flex-wrap: wrap;
-    }
-    
-    nav .nav-btn {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.75rem;
-    }
-    
-    nav .nav-btn span {
-        display: none;
-    }
-    
-    .bookmark-nav-btn {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.75rem;
-    }
-    
-    .bookmark-nav-btn span:not(.bookmark-count) {
-        display: none;
-    }
-    
-    .select-mode-btn {
-        padding: 0.4rem 0.6rem;
-    }
-    
-    .select-mode-btn span {
-        display: none;
-    }
-    
-    .trash-btn {
-        padding: 0.4rem 0.6rem;
-    }
-    
-    main { 
-        padding: 180px 1rem 2rem;
-        margin-left: 0;
-        margin-right: 0;
-    }
-    
-    .search-bar {
-        padding: 0.4rem 0.75rem;
-    }
-    
-    .search-bar input {
-        font-size: 0.85rem;
-    }
-    
-    .filter-btn {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.7rem;
-    }
-    
-    .gallery {
-        gap: 0.8rem;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    }
-    
-    .card-title {
-        font-size: 0.7rem;
-    }
-    
-    .card-meta {
-        font-size: 0.55rem;
-    }
-    
-    .category {
-        font-size: 0.5rem;
-        padding: 0.1rem 0.3rem;
-    }
-    
-    .date {
-        font-size: 0.55rem;
-    }
-    
-    .card-content {
-        padding: 0.5rem;
-    }
-    
-    .action-btn {
-        width: 26px;
-        height: 26px;
-    }
-    
-    .action-btn svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    .upload-type-selector { 
-        flex-direction: column; 
-    }
-    
-    .bookmarks-grid { 
-        grid-template-columns: 1fr 1fr; 
-    }
-    
-    .selection-toolbar {
-        padding: 8px 12px;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    .selection-toolbar button {
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-    
-    .selection-count {
-        min-width: auto;
-        font-size: 12px;
-    }
-    
-    .modal {
-        margin: 1rem;
-        max-height: 85vh;
-    }
-    
-    .modal-title {
-        font-size: 1.5rem;
-    }
-    
-    .modal-actions {
-        flex-wrap: wrap;
-    }
-    
-    .modal-action-btn {
-        font-size: 0.75rem;
-        padding: 0.5rem 0.75rem;
-    }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }
