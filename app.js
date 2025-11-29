@@ -558,6 +558,7 @@ function renderGallery(reset = true) {
             <article class="video-card ${isSelected ? 'selected' : ''} ${isExternal ? 'external-link' : ''}" data-index="${index}" data-id="${video.id}" data-external="${isExternal}" onclick="handleCardClick(${index}, event)">
                 <div class="thumbnail-wrapper">
                     <img class="thumbnail" src="${thumbnail}" alt="${video.title}" loading="lazy" 
+                        onload="handleThumbnailLoad(this, '${video.videoUrl || ''}')"
                         onerror="this.src='https://via.placeholder.com/640x360/1a1a1a/333?text=No+Thumbnail'">
                     <div class="play-overlay">
                         <div class="play-btn ${isExternal ? 'link-btn' : ''}">
@@ -625,7 +626,8 @@ function setupInfiniteScroll() {
 function getDefaultThumbnail(video) {
     if (video.videoUrl?.includes('youtube.com') || video.videoUrl?.includes('youtu.be')) {
         const videoId = extractYoutubeId(video.videoUrl);
-        if (videoId) return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        // hqdefaultは必ず存在する
+        if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     }
     return 'https://via.placeholder.com/640x360/1a1a1a/333?text=Video';
 }
@@ -1447,7 +1449,7 @@ async function onVideoUrlChange() {
     const preview = document.getElementById('url-thumbnail-preview');
     const img = document.getElementById('url-thumbnail-img');
     const badge = document.getElementById('platform-badge');
-    const platform = detectPlatform(url);
+    const platform = await detectPlatform(url);
     detectedPlatform = platform;
     if (platform) {
         badge.style.display = 'inline-flex';
@@ -1467,11 +1469,52 @@ async function onVideoUrlChange() {
     }
 }
 
-function detectPlatform(url) {
+// YouTubeサムネイルを優先順位付きで取得
+async function getYoutubeThumbnail(videoId) {
+    const qualities = ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault'];
+    for (const quality of qualities) {
+        const url = `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+        try {
+            const exists = await checkImageExists(url);
+            if (exists) return url;
+        } catch (e) { continue; }
+    }
+    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+}
+
+// 画像の存在確認（灰色プレースホルダーでないか確認）
+function checkImageExists(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            // YouTubeの灰色プレースホルダーは120x90
+            resolve(!(this.width === 120 && this.height === 90));
+        };
+        img.onerror = function() { resolve(false); };
+        img.src = url;
+    });
+}
+
+// サムネイル読み込み時にYouTubeの灰色プレースホルダーをチェック
+function handleThumbnailLoad(img, videoUrl) {
+    if (img.naturalWidth === 120 && img.naturalHeight === 90) {
+        if (img.src.includes('maxresdefault')) {
+            const videoId = extractYoutubeId(videoUrl);
+            if (videoId) {
+                img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            }
+        } else {
+            img.src = 'https://via.placeholder.com/640x360/1a1a1a/333?text=No+Thumbnail';
+        }
+    }
+}
+
+async function detectPlatform(url) {
     if (!url) return null;
     const youtubeId = extractYoutubeId(url);
     if (youtubeId) {
-        return { type: 'youtube', name: 'YouTube', id: youtubeId, thumbnail: `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`, embedUrl: `https://www.youtube.com/embed/${youtubeId}` };
+        const thumbnail = await getYoutubeThumbnail(youtubeId);
+        return { type: 'youtube', name: 'YouTube', id: youtubeId, thumbnail: thumbnail, embedUrl: `https://www.youtube.com/embed/${youtubeId}` };
     }
     const vimeoMatch = url.match(/(?:vimeo\.com\/)(\d+)/);
     if (vimeoMatch) {
