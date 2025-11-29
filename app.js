@@ -3,7 +3,7 @@
 // ╚════════════════════════════════════════════════════════════════╝
 
 const CONFIG = {
-    GAS_URL: 'https://script.google.com/macros/s/AKfycbwVN9AoZsZZRhZsBac4sSdzhyO6Ns7KLi-X7UIsYmbWB8YLpQtwBmXs2DVz7quddWY9pA/exec'
+    GAS_URL: 'https://script.google.com/macros/s/AKfycby4ek37qfvEhbNa4J0LuVEcZuEt7np5hxFD-hBwPkOElE3La5uAjafrK9cDTrUZyG51VA/exec'
 };
 
 // ╔════════════════════════════════════════════════════════════════╗
@@ -18,7 +18,7 @@ let currentUploadType = 'url';
 let selectedFile = null;
 let detectedPlatform = null;
 let bookmarkData = {};
-let bookmarkCategoryList = ['お気に入り'];
+let bookmarkCategoryList = []; // _BookmarkCategoriesシートから取得
 let searchQuery = '';
 let bookmarkSearchQuery = '';
 let currentBookmarkFilter = 'All';
@@ -160,13 +160,18 @@ async function loadCategories() {
         const data = await fetchJsonp(CONFIG.GAS_URL + '?action=getCategories');
         if (data.error) throw new Error(data.error);
         categories = Array.isArray(data) ? data : [];
+        if (categories.length === 0) {
+            console.warn('カテゴリが見つかりません。_Categoriesシートを確認してください。');
+        }
         updateCategorySelect();
         updateCategoryFilters();
     } catch (error) {
         console.error('Category load error:', error);
-        categories = ['CM', 'WEB CM', 'MV'];
+        // エラー時は空配列（スプレッドシートから取得できなかった）
+        categories = [];
         updateCategorySelect();
         updateCategoryFilters();
+        updateStatus('error', 'カテゴリの読み込みに失敗しました');
     }
 }
 
@@ -434,9 +439,13 @@ function clearSearch() {
 // ===== ブックマーク =====
 async function loadBookmarkData() {
     try {
+        // カテゴリ一覧を取得（_BookmarkCategoriesシートから）
         const categories = await fetchJsonp(CONFIG.GAS_URL + '?action=getBookmarkCategories');
         if (Array.isArray(categories) && categories.length > 0) {
             bookmarkCategoryList = categories.filter(cat => typeof cat === 'string' && cat.trim() !== '');
+        } else {
+            bookmarkCategoryList = [];
+            console.warn('ブックマークカテゴリが見つかりません。_BookmarkCategoriesシートを確認してください。');
         }
         const bookmarks = await fetchJsonp(CONFIG.GAS_URL + '?action=getBookmarks');
         if (bookmarks && !bookmarks.error && typeof bookmarks === 'object') {
@@ -461,6 +470,7 @@ async function loadBookmarkData() {
         updateBookmarkCount();
     } catch (error) {
         console.error('Bookmark load error:', error);
+        bookmarkCategoryList = [];
     }
 }
 
@@ -785,13 +795,22 @@ function editBookmarkFromModal(videoId, event) {
     openBookmarkModal(video, videoId);
 }
 
-function showAddBookmarkCategoryFromModal() {
+async function showAddBookmarkCategoryFromModal() {
     const name = prompt('新しいブックマークカテゴリ名を入力:');
     if (!name || !name.trim()) return;
     if (bookmarkCategoryList.includes(name.trim())) { alert('このカテゴリは既に存在します'); return; }
-    bookmarkCategoryList.push(name.trim());
-    localStorage.setItem('bookmarkCategories', JSON.stringify(bookmarkCategoryList));
-    renderBookmarksCategoryButtons();
+    
+    showLoading('カテゴリを追加中...');
+    try {
+        await postToGas({ action: 'addBookmarkCategory', name: name.trim() });
+        bookmarkCategoryList.push(name.trim());
+        hideLoading();
+        renderBookmarksCategoryButtons();
+    } catch (error) {
+        hideLoading();
+        console.error('Add category error:', error);
+        alert('カテゴリの追加に失敗しました');
+    }
 }
 
 // ===== 動画モーダル =====
