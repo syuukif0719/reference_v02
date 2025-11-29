@@ -14,6 +14,7 @@ const CONFIG = {
 let videos = [];
 let categories = [];
 let currentFilter = 'All';
+let currentSort = 'date-desc';
 let currentUploadType = 'url';
 let selectedFile = null;
 let detectedPlatform = null;
@@ -443,7 +444,53 @@ function getFilteredVideos() {
             fuzzyMatch(v.description, searchQueries)
         );
     }
+    filtered = sortVideoList(filtered, currentSort);
     return filtered;
+}
+
+function sortVideoList(videoList, sortType) {
+    const sorted = [...videoList];
+    switch (sortType) {
+        case 'date-desc':
+            sorted.sort((a, b) => {
+                const dateA = String(a.date || '').replace(/\./g, '/');
+                const dateB = String(b.date || '').replace(/\./g, '/');
+                return dateB.localeCompare(dateA);
+            });
+            break;
+        case 'date-asc':
+            sorted.sort((a, b) => {
+                const dateA = String(a.date || '').replace(/\./g, '/');
+                const dateB = String(b.date || '').replace(/\./g, '/');
+                return dateA.localeCompare(dateB);
+            });
+            break;
+        case 'title-asc':
+            sorted.sort((a, b) => {
+                const titleA = String(a.title || '').toLowerCase();
+                const titleB = String(b.title || '').toLowerCase();
+                return titleA.localeCompare(titleB, 'ja');
+            });
+            break;
+        case 'source':
+            const sourceOrder = { youtube: 1, vimeo: 2, dropbox: 3, external: 4, unknown: 5 };
+            sorted.sort((a, b) => {
+                const orderA = sourceOrder[a.source] || 5;
+                const orderB = sourceOrder[b.source] || 5;
+                if (orderA !== orderB) return orderA - orderB;
+                const dateA = String(a.date || '').replace(/\./g, '/');
+                const dateB = String(b.date || '').replace(/\./g, '/');
+                return dateB.localeCompare(dateA);
+            });
+            break;
+    }
+    return sorted;
+}
+
+function sortVideos() {
+    const select = document.getElementById('sort-select');
+    currentSort = select.value;
+    renderGallery();
 }
 
 function renderGallery(reset = true) {
