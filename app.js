@@ -629,6 +629,10 @@ function getDefaultThumbnail(video) {
         // hqdefaultは必ず存在する
         if (videoId) return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     }
+    // Instagramはロゴをサムネイルとして表示
+    if (video.videoUrl?.includes('instagram.com') || video.source === 'instagram') {
+        return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#f09433"/><stop offset="25%" style="stop-color:#e6683c"/><stop offset="50%" style="stop-color:#dc2743"/><stop offset="75%" style="stop-color:#cc2366"/><stop offset="100%" style="stop-color:#bc1888"/></linearGradient></defs><rect width="640" height="360" fill="#1a1a1a"/><g transform="translate(270,130)"><rect x="0" y="0" width="100" height="100" rx="22" fill="none" stroke="url(#ig)" stroke-width="6"/><circle cx="50" cy="50" r="24" fill="none" stroke="url(#ig)" stroke-width="6"/><circle cx="76" cy="24" r="6" fill="url(#ig)"/></g></svg>`);
+    }
     return 'https://via.placeholder.com/640x360/1a1a1a/333?text=Video';
 }
 
@@ -1361,7 +1365,6 @@ async function onExternalLinkChange() {
     const img = document.getElementById('link-thumbnail-img');
     const thumbnailInput = document.getElementById('link-thumbnail-url');
     const titleInput = document.getElementById('video-title');
-    const featuresInput = document.getElementById('video-features');
     
     if (!url) {
         preview.classList.remove('active');
@@ -1405,10 +1408,7 @@ async function onExternalLinkChange() {
                     titleInput.value = ogpData.title;
                 }
                 
-                // 説明を設定（空の場合のみ）
-                if (ogpData.description && !featuresInput.value) {
-                    featuresInput.value = ogpData.description;
-                }
+                // 特徴・メモは手動入力のため自動取得しない
             } else {
                 preview.classList.remove('active');
             }
@@ -1523,7 +1523,8 @@ async function detectPlatform(url) {
     const instaMatch = url.match(/(?:instagram\.com\/(?:p|reel|reels|tv)\/)([A-Za-z0-9_-]+)/);
     if (instaMatch) {
         const instaId = instaMatch[1];
-        return { type: 'instagram', name: 'Instagram', id: instaId, thumbnail: `https://www.instagram.com/p/${instaId}/media/?size=l`, embedUrl: `https://www.instagram.com/p/${instaId}/embed` };
+        // サムネイルはnull（ロゴを表示）
+        return { type: 'instagram', name: 'Instagram', id: instaId, thumbnail: null, embedUrl: `https://www.instagram.com/p/${instaId}/embed` };
     }
     if (url.match(/^https?:\/\/.+/)) {
         return { type: 'unknown', name: 'その他', id: null, thumbnail: null, embedUrl: url };
