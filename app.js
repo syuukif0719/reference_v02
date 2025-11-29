@@ -542,12 +542,21 @@ function openBookmarkModal(video, index) {
 }
 
 function closeBookmarkModal() {
-    document.getElementById('bookmark-modal').classList.remove('active');
+    const modal = document.getElementById('bookmark-modal');
+    modal.classList.remove('active');
+    modal.dataset.bulkMode = 'false';
     document.body.style.overflow = '';
 }
 
 async function saveBookmark() {
     const modal = document.getElementById('bookmark-modal');
+    
+    // 複数選択モードの場合
+    if (modal.dataset.bulkMode === 'true') {
+        await saveBulkBookmark();
+        return;
+    }
+    
     const videoId = parseInt(modal.dataset.videoId);
     const videoCategory = modal.dataset.videoCategory;
     const video = videos.find(v => v.id === videoId);
@@ -1499,35 +1508,90 @@ function deselectAllVideos() {
     updateSelectionCount();
 }
 
-async function bookmarkSelectedVideos() {
+function bookmarkSelectedVideos() {
     const count = selectedVideos.size;
     if (count === 0) { alert('動画を選択してください'); return; }
-    const bookmarkCategory = bookmarkCategoryList[0] || 'お気に入り';
+    
+    // 複数選択用ブックマークモーダルを開く
+    openBulkBookmarkModal();
+}
+
+function openBulkBookmarkModal() {
+    const modal = document.getElementById('bookmark-modal');
+    const checkboxContainer = document.getElementById('bookmark-category-checkboxes');
+    const count = selectedVideos.size;
+    
+    // 全てのカテゴリを未選択状態で表示
+    checkboxContainer.innerHTML = bookmarkCategoryList.map(cat => `
+        <label class="bookmark-checkbox-label">
+            <input type="checkbox" value="${cat}">
+            <span>${cat}</span>
+        </label>
+    `).join('');
+    
+    // 複数選択モード用にデータ属性を設定
+    modal.dataset.bulkMode = 'true';
+    modal.dataset.videoId = '';
+    document.getElementById('bookmark-video-title').textContent = `${count}件の動画を選択中`;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+async function saveBulkBookmark() {
+    const checkboxes = document.querySelectorAll('#bookmark-category-checkboxes input[type="checkbox"]:checked');
+    const selectedCategories = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (selectedCategories.length === 0) {
+        alert('カテゴリを選択してください');
+        return;
+    }
+    
+    const count = selectedVideos.size;
     showLoading(`${count}件の動画をブックマーク中...`);
+    
     try {
         for (const videoId of selectedVideos) {
             const video = videos.find(v => v.id === videoId);
             if (!video) continue;
-            const isAlreadyBookmarked = bookmarkData[videoId]?.bookmarkCategories?.includes(bookmarkCategory);
-            if (!isAlreadyBookmarked) {
-                await postToGas({ action: 'addBookmark', bookmarkCategory: bookmarkCategory, video: { id: video.id, title: video.title, description: video.description, date: video.date, thumbnail: video.thumbnail, videoUrl: video.videoUrl, source: video.source, category: video.category } });
-                if (!bookmarkData[videoId]) {
-                    bookmarkData[videoId] = { category: video.category || 'Uncategorized', bookmarkCategories: [bookmarkCategory], videoData: video };
-                } else if (!bookmarkData[videoId].bookmarkCategories) {
-                    bookmarkData[videoId].bookmarkCategories = [bookmarkCategory];
-                } else if (!bookmarkData[videoId].bookmarkCategories.includes(bookmarkCategory)) {
-                    bookmarkData[videoId].bookmarkCategories.push(bookmarkCategory);
+            
+            for (const bookmarkCategory of selectedCategories) {
+                const isAlreadyBookmarked = bookmarkData[videoId]?.bookmarkCategories?.includes(bookmarkCategory);
+                if (!isAlreadyBookmarked) {
+                    await postToGas({
+                        action: 'addBookmark',
+                        bookmarkCategory: bookmarkCategory,
+                        video: {
+                            id: video.id,
+                            title: video.title,
+                            description: video.description,
+                            date: video.date,
+                            thumbnail: video.thumbnail,
+                            videoUrl: video.videoUrl,
+                            source: video.source,
+                            category: video.category
+                        }
+                    });
+                    
+                    if (!bookmarkData[videoId]) {
+                        bookmarkData[videoId] = { category: video.category || 'Uncategorized', bookmarkCategories: [bookmarkCategory], videoData: video };
+                    } else if (!bookmarkData[videoId].bookmarkCategories) {
+                        bookmarkData[videoId].bookmarkCategories = [bookmarkCategory];
+                    } else if (!bookmarkData[videoId].bookmarkCategories.includes(bookmarkCategory)) {
+                        bookmarkData[videoId].bookmarkCategories.push(bookmarkCategory);
+                    }
                 }
             }
         }
+        
         hideLoading();
+        closeBookmarkModal();
         exitSelectMode();
         renderGallery();
         updateBookmarkCount();
         updateStatus('', `${count}件の動画をブックマークしました`);
     } catch (error) {
         hideLoading();
-        console.error('Bookmark error:', error);
+        console.error('Bulk bookmark error:', error);
         alert('ブックマークに失敗しました');
     }
 }
