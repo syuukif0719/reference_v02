@@ -544,7 +544,7 @@ function renderGallery(reset = true) {
         const source = video.source || 'unknown';
         const isExternal = isExternalLink(video);
         const sourceLabel = isExternal ? getExternalLinkDomain(video.videoUrl) : ({ youtube: 'YouTube', vimeo: 'Vimeo', instagram: 'Instagram', dropbox: 'Dropbox', unknown: 'Other' }[source] || source);
-        const videoId = video.id || index;
+        const videoId = video.id !== undefined ? video.id : index;
         const bookmarked = isBookmarked(videoId);
         const isSelected = selectedVideos.has(video.id);
         const canDownload = source === 'dropbox';
@@ -716,7 +716,7 @@ function toggleBookmark(index, event) {
 function openBookmarkModal(video, index) {
     const modal = document.getElementById('bookmark-modal');
     const checkboxContainer = document.getElementById('bookmark-category-checkboxes');
-    const videoId = video.id || index;
+    const videoId = video.id !== undefined ? video.id : index;
     const currentCategories = bookmarkData[videoId]?.bookmarkCategories || [];
     checkboxContainer.innerHTML = bookmarkCategoryList.map(cat => `
         <label class="bookmark-checkbox-label">
@@ -1076,7 +1076,7 @@ function openModal(index) {
     document.getElementById('modal-source').textContent = sourceLabels[source] || source;
     document.getElementById('modal-description').textContent = video.description || '';
     const bookmarkBtn = document.getElementById('modal-bookmark-btn');
-    const videoId = video.id || index;
+    const videoId = video.id !== undefined ? video.id : index;
     if (isBookmarked(videoId)) {
         bookmarkBtn.classList.add('active');
         bookmarkBtn.querySelector('span').textContent = 'ブックマーク済み';
