@@ -3,7 +3,7 @@
 // ╚════════════════════════════════════════════════════════════════╝
 
 const CONFIG = {
-    GAS_URL: 'https://script.google.com/macros/s/AKfycbyXZVz57wgMadh9qKcQyfNf47IwEGCpM0dNynpHTqlJl3uZI6_vGSFTMFzw4f1x5O4SRQ/exec'
+    GAS_URL: 'https://script.google.com/macros/s/AKfycbxuoKCuuxWqK-JqFx9JmVMobcu8wffaVk14_BGgBasy5Iz1wuC04slKKBEgHYF8WYHk8A/exec'
 };
 
 // ╔════════════════════════════════════════════════════════════════╗
@@ -116,7 +116,7 @@ let jsonpCounter = 0;
 function fetchJsonp(url, retries = 2) {
     return new Promise((resolve, reject) => {
         jsonpCounter++;
-        const callbackName = 'jsonpCallback_' + jsonpCounter + '_' + Date.now();
+        const callbackName = 'cb' + jsonpCounter + '_' + Date.now();
         const script = document.createElement('script');
         
         // コールバック関数を先にグローバルに登録
@@ -151,7 +151,10 @@ function fetchJsonp(url, retries = 2) {
             }
         };
         
-        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+        // キャッシュ回避用のタイムスタンプを追加
+        const cacheBuster = '_t=' + Date.now();
+        const separator = url.includes('?') ? '&' : '?';
+        script.src = url + separator + 'callback=' + callbackName + '&' + cacheBuster;
         document.body.appendChild(script);
     });
 }
