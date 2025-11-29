@@ -345,6 +345,85 @@ async function refreshInBackground() {
 }
 
 // ===== ギャラリー描画 =====
+// ===== あいまい検索 =====
+// ひらがな→カタカナ変換
+function hiraganaToKatakana(str) {
+    return str.replace(/[\u3041-\u3096]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+}
+
+// カタカナ→ひらがな変換
+function katakanaToHiragana(str) {
+    return str.replace(/[\u30A1-\u30F6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+
+// 口語表現・略語の同義語マップ
+const synonymMap = {
+    'かっこいい': ['カッコイイ', 'かっこ良い', 'カッコ良い', 'かっけー', 'カッケー', 'かっけえ', 'イケてる', 'クール', 'cool'],
+    'かわいい': ['カワイイ', '可愛い', 'かわいー', 'カワイー', 'きゃわいい', 'キャワイイ', 'cute'],
+    'すごい': ['スゴイ', '凄い', 'すげー', 'スゲー', 'すげえ', 'やばい', 'ヤバイ', 'やばっ'],
+    'おしゃれ': ['オシャレ', 'お洒落', 'おっしゃれ', 'シャレオツ'],
+    'おもしろい': ['オモシロイ', '面白い', 'おもろい', 'オモロイ', 'ウケる', 'うける'],
+    'きれい': ['キレイ', '綺麗', 'きれー', 'キレー', '美しい', 'うつくしい'],
+    'たのしい': ['タノシイ', '楽しい', 'たのしー', 'タノシー'],
+    'うれしい': ['ウレシイ', '嬉しい', 'うれしー', 'ウレシー'],
+    'かなしい': ['カナシイ', '悲しい', 'かなしー', 'カナシー', 'せつない', 'セツナイ', '切ない'],
+    'やさしい': ['ヤサシイ', '優しい', 'やさしー', 'ヤサシー'],
+    'つよい': ['ツヨイ', '強い', 'つえー', 'ツエー', 'つええ'],
+    'はやい': ['ハヤイ', '速い', '早い', 'はえー', 'ハエー', 'はええ'],
+    'あつい': ['アツイ', '熱い', '暑い', 'あちー', 'アチー', 'あちい'],
+    'さむい': ['サムイ', '寒い', 'さみー', 'サミー', 'さみい'],
+    'おおきい': ['オオキイ', '大きい', 'でかい', 'デカイ', 'でけー', 'デケー'],
+    'ちいさい': ['チイサイ', '小さい', 'ちっさい', 'チッサイ', 'ちっちゃい'],
+    'あたらしい': ['アタラシイ', '新しい', 'ニュー', 'new'],
+    'ふるい': ['フルイ', '古い', 'レトロ', 'retro', 'ビンテージ', 'vintage'],
+    'いい': ['イイ', '良い', 'よい', 'ヨイ', 'ええ', 'エエ', 'good', 'グッド', 'ナイス', 'nice'],
+    'わるい': ['ワルイ', '悪い', 'bad', 'バッド'],
+    'シンプル': ['しんぷる', 'simple', 'シンプルな'],
+    'ポップ': ['ぽっぷ', 'pop', 'ポップな'],
+    'ダーク': ['だーく', 'dark', 'ダークな', '暗い', 'くらい'],
+    'エモい': ['えもい', 'エモ', 'えも', 'emotional'],
+    'チル': ['ちる', 'chill', 'チルい', 'ちるい'],
+};
+
+// 検索クエリの拡張（同義語を含む）
+function expandSearchQuery(query) {
+    const normalizedQuery = query.toLowerCase();
+    const hiraganaQuery = katakanaToHiragana(normalizedQuery);
+    const katakanaQuery = hiraganaToKatakana(normalizedQuery);
+    
+    const queries = new Set([normalizedQuery, hiraganaQuery, katakanaQuery]);
+    
+    // 同義語マップから一致するものを追加
+    for (const [key, synonyms] of Object.entries(synonymMap)) {
+        const allForms = [key, ...synonyms].map(s => s.toLowerCase());
+        const allFormsHiragana = allForms.map(s => katakanaToHiragana(s));
+        const allFormsKatakana = allForms.map(s => hiraganaToKatakana(s));
+        const allVariants = [...allForms, ...allFormsHiragana, ...allFormsKatakana];
+        
+        if (allVariants.some(v => v.includes(normalizedQuery) || v.includes(hiraganaQuery) || v.includes(katakanaQuery))) {
+            allForms.forEach(s => queries.add(s));
+            allFormsHiragana.forEach(s => queries.add(s));
+            allFormsKatakana.forEach(s => queries.add(s));
+        }
+    }
+    
+    return Array.from(queries);
+}
+
+// テキストがクエリにあいまい一致するか
+function fuzzyMatch(text, searchQueries) {
+    if (!text) return false;
+    const normalizedText = text.toLowerCase();
+    const hiraganaText = katakanaToHiragana(normalizedText);
+    const katakanaText = hiraganaToKatakana(normalizedText);
+    
+    return searchQueries.some(q => 
+        normalizedText.includes(q) || 
+        hiraganaText.includes(q) || 
+        katakanaText.includes(q)
+    );
+}
+
 function getFilteredVideos() {
     let filtered = videos;
     if (currentFilter === 'Bookmarks') {
@@ -353,9 +432,10 @@ function getFilteredVideos() {
         filtered = videos.filter(v => v.category === currentFilter);
     }
     if (searchQuery) {
+        const searchQueries = expandSearchQuery(searchQuery);
         filtered = filtered.filter(v => 
-            (v.title && v.title.toLowerCase().includes(searchQuery)) ||
-            (v.description && v.description.toLowerCase().includes(searchQuery))
+            fuzzyMatch(v.title, searchQueries) ||
+            fuzzyMatch(v.description, searchQueries)
         );
     }
     return filtered;
