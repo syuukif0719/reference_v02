@@ -41,6 +41,35 @@ const CACHE_KEY = 'sceneGalleryVideos';
 const CACHE_TIME_KEY = 'sceneGalleryVideosTime';
 const CACHE_DURATION = 5 * 60 * 1000;
 
+// ===== リンクタイプ判定 =====
+// YouTube, Vimeo, Dropbox以外のURLは外部リンクとして扱う
+function isExternalLink(video) {
+    const source = video.source || 'unknown';
+    const url = video.videoUrl || '';
+    
+    // YouTube, Vimeo, Dropboxは動画として扱う
+    if (source === 'youtube' || source === 'vimeo' || source === 'dropbox') {
+        return false;
+    }
+    
+    // URLが存在し、http/httpsで始まる場合は外部リンク
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        return true;
+    }
+    
+    return false;
+}
+
+// 外部リンクのドメイン名を取得
+function getExternalLinkDomain(url) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname.replace('www.', '');
+    } catch {
+        return 'Link';
+    }
+}
+
 // ===== 初期化 =====
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
@@ -360,22 +389,29 @@ function renderGallery(reset = true) {
     gallery.innerHTML = videosToShow.map((video, index) => {
         const thumbnail = video.thumbnail || getDefaultThumbnail(video);
         const source = video.source || 'unknown';
-        const sourceLabel = { youtube: 'YouTube', vimeo: 'Vimeo', instagram: 'Instagram', dropbox: 'Dropbox', unknown: 'Other' }[source] || source;
+        const isExternal = isExternalLink(video);
+        const sourceLabel = isExternal ? getExternalLinkDomain(video.videoUrl) : ({ youtube: 'YouTube', vimeo: 'Vimeo', instagram: 'Instagram', dropbox: 'Dropbox', unknown: 'Other' }[source] || source);
         const videoId = video.id || index;
         const bookmarked = isBookmarked(videoId);
         const isSelected = selectedVideos.has(video.id);
         const canDownload = source === 'dropbox';
+        
+        // 外部リンクの場合はリンクアイコン、それ以外は再生アイコン
+        const overlayIcon = isExternal 
+            ? '<svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>'
+            : '<svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>';
+        
         return `
-            <article class="video-card ${isSelected ? 'selected' : ''}" data-index="${index}" data-id="${video.id}" onclick="handleCardClick(${index}, event)">
+            <article class="video-card ${isSelected ? 'selected' : ''} ${isExternal ? 'external-link' : ''}" data-index="${index}" data-id="${video.id}" data-external="${isExternal}" onclick="handleCardClick(${index}, event)">
                 <div class="thumbnail-wrapper">
                     <img class="thumbnail" src="${thumbnail}" alt="${video.title}" loading="lazy" 
                         onerror="this.src='https://via.placeholder.com/640x360/1a1a1a/333?text=No+Thumbnail'">
                     <div class="play-overlay">
-                        <div class="play-btn">
-                            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                        <div class="play-btn ${isExternal ? 'link-btn' : ''}">
+                            ${overlayIcon}
                         </div>
                     </div>
-                    <span class="source-badge ${source}">${sourceLabel}</span>
+                    <span class="source-badge ${source} ${isExternal ? 'external' : ''}">${sourceLabel}</span>
                 </div>
                 <div class="card-content">
                     <div class="card-meta">
@@ -905,8 +941,21 @@ function closeModal() {
 }
 
 function handleCardClick(index, event) {
-    if (isSelectMode) toggleVideoSelection(index, event);
-    else openModal(index);
+    if (isSelectMode) {
+        toggleVideoSelection(index, event);
+        return;
+    }
+    
+    const filteredVideos = getFilteredVideos();
+    const video = filteredVideos[index];
+    
+    // 外部リンクの場合は新しいタブで開く
+    if (video && isExternalLink(video)) {
+        window.open(video.videoUrl, '_blank');
+        return;
+    }
+    
+    openModal(index);
 }
 
 function toggleBookmarkFromModal() {
