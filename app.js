@@ -1522,7 +1522,8 @@ async function detectPlatform(url) {
     }
     const instaMatch = url.match(/(?:instagram\.com\/(?:p|reel|reels|tv)\/)([A-Za-z0-9_-]+)/);
     if (instaMatch) {
-        return { type: 'instagram', name: 'Instagram', id: instaMatch[1], thumbnail: null, embedUrl: `https://www.instagram.com/p/${instaMatch[1]}/embed` };
+        const instaId = instaMatch[1];
+        return { type: 'instagram', name: 'Instagram', id: instaId, thumbnail: `https://www.instagram.com/p/${instaId}/media/?size=l`, embedUrl: `https://www.instagram.com/p/${instaId}/embed` };
     }
     if (url.match(/^https?:\/\/.+/)) {
         return { type: 'unknown', name: 'その他', id: null, thumbnail: null, embedUrl: url };
