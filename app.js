@@ -76,6 +76,16 @@ function getExternalLinkDomain(url) {
     }
 }
 
+// ヘッダー高さに応じてmainのpadding-topを調整
+function adjustMainPadding() {
+    const header = document.querySelector('header');
+    const main = document.querySelector('main');
+    if (header && main) {
+        const headerHeight = header.offsetHeight;
+        main.style.paddingTop = (headerHeight + 20) + 'px';
+    }
+}
+
 // ===== 初期化 =====
 document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
@@ -85,6 +95,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initDropArea();
     setupInfiniteScroll();
     setupEventListeners();
+    
+    // ヘッダー高さ調整
+    adjustMainPadding();
+    window.addEventListener('resize', adjustMainPadding);
+    
+    // ResizeObserverでヘッダーサイズ変更を監視
+    if (typeof ResizeObserver !== 'undefined') {
+        const headerObserver = new ResizeObserver(adjustMainPadding);
+        const header = document.querySelector('header');
+        if (header) headerObserver.observe(header);
+    }
 });
 
 function setupEventListeners() {
