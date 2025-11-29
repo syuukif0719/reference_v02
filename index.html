@@ -345,6 +345,10 @@
                     <div class="form-group" id="url-input">
                         <label>動画URL <span>*</span></label>
                         <input type="url" class="form-input" id="video-url" placeholder="YouTube / Vimeo のURLを入力" oninput="onVideoUrlChange()">
+                        <div class="duplicate-warning" id="url-duplicate-warning">
+                            <strong>⚠ この動画は既に追加されています</strong>
+                            <span id="url-duplicate-title"></span>
+                        </div>
                         <div class="platform-badge" id="platform-badge" style="display:none;"></div>
                         <div class="thumbnail-preview" id="url-thumbnail-preview">
                             <img id="url-thumbnail-img" src="" alt="Thumbnail">
@@ -371,11 +375,19 @@
                             </div>
                             <button class="selected-file-remove" onclick="removeFile()">✕</button>
                         </div>
+                        <div class="duplicate-warning" id="file-duplicate-warning">
+                            <strong>⚠ 同じファイル名の動画が既にあります</strong>
+                            <span id="file-duplicate-title"></span>
+                        </div>
                     </div>
                     <!-- 外部リンク入力 -->
                     <div class="form-group" id="link-input" style="display: none;">
                         <label>リンクURL <span>*</span></label>
                         <input type="url" class="form-input" id="external-link-url" placeholder="外部サイトのURLを入力" oninput="onExternalLinkChange()">
+                        <div class="duplicate-warning" id="link-duplicate-warning">
+                            <strong>⚠ このリンクは既に追加されています</strong>
+                            <span id="link-duplicate-title"></span>
+                        </div>
                         <p class="input-hint">Pinterest、参考サイト、記事などのリンクを追加できます</p>
                     </div>
                     <!-- サムネイルURL入力（外部リンク用） -->
