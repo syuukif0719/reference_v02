@@ -40,7 +40,7 @@ let isLoadingMore = false;
 // キャッシュ設定
 const CACHE_KEY = 'sceneGalleryVideos';
 const CACHE_TIME_KEY = 'sceneGalleryVideosTime';
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 1 * 60 * 1000; // 1分間キャッシュ（複数人同時アクセス対応）
 
 // ===== リンクタイプ判定 =====
 // YouTube, Vimeo, Dropbox以外のURLは外部リンクとして扱う
@@ -1005,19 +1005,27 @@ function playBookmarkVideo(videoId) {
     openModal(index);
 }
 
-function removeFromBookmarks(videoId, event) {
+async function removeFromBookmarks(videoId, event) {
     event.stopPropagation();
-    delete bookmarkData[videoId];
-    localStorage.setItem('videoBookmarkData', JSON.stringify(bookmarkData));
-    updateBookmarkCount();
-    renderBookmarksCategoryButtons();
-    renderBookmarksGrid();
-    renderGallery();
+    const categories = bookmarkData[videoId]?.bookmarkCategories || [];
+    try {
+        for (const category of categories) {
+            await postToGas({ action: 'removeBookmark', bookmarkCategory: category, videoId: videoId });
+        }
+        delete bookmarkData[videoId];
+        updateBookmarkCount();
+        renderBookmarksCategoryButtons();
+        renderBookmarksGrid();
+        renderGallery();
+    } catch (error) {
+        console.error('ブックマーク削除エラー:', error);
+        alert('ブックマークの削除に失敗しました');
+    }
 }
 
 function editBookmarkFromModal(videoId, event) {
     event.stopPropagation();
-    const video = videos.find(v => v.id === videoId);
+    const video = videos.find((v, idx) => (v.id !== undefined ? v.id : idx) === videoId);
     if (!video) return;
     closeBookmarksModal();
     openBookmarkModal(video, videoId);
