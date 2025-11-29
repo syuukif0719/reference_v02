@@ -1662,6 +1662,25 @@ function fileToBase64(file) {
     });
 }
 
+// 重複チェック関数
+function checkDuplicate(type, value) {
+    if (!value) return null;
+    for (const video of videos) {
+        if (type === 'url') {
+            if (video.videoUrl && video.videoUrl === value) return video;
+            const newYoutubeId = extractYoutubeId(value);
+            const existingYoutubeId = extractYoutubeId(video.videoUrl || '');
+            if (newYoutubeId && existingYoutubeId && newYoutubeId === existingYoutubeId) return video;
+        } else if (type === 'filename') {
+            if (video.source === 'dropbox' && video.videoUrl) {
+                const existingFilename = decodeURIComponent(video.videoUrl.split('/').pop().split('?')[0]);
+                if (existingFilename === value) return video;
+            }
+        }
+    }
+    return null;
+}
+
 async function submitVideo() {
     hideError();
     const title = document.getElementById('video-title').value.trim();
@@ -1670,6 +1689,33 @@ async function submitVideo() {
     if (!title) { showError('タイトルを入力してください'); return; }
     if (!features) { showError('特徴・メモを入力してください'); return; }
     if (!category) { showError('カテゴリを選択してください'); return; }
+    
+    // 重複チェック
+    if (currentUploadType === 'url') {
+        const inputUrl = document.getElementById('video-url').value.trim();
+        const duplicate = checkDuplicate('url', inputUrl);
+        if (duplicate) {
+            showError(`この動画は既に追加されています：「${duplicate.title}」`);
+            return;
+        }
+    } else if (currentUploadType === 'dropbox') {
+        if (selectedFile) {
+            const duplicate = checkDuplicate('filename', selectedFile.name);
+            if (duplicate) {
+                if (!confirm(`同じファイル名の動画が既にあります：「${duplicate.title}」\n\nそれでもアップロードしますか？`)) {
+                    return;
+                }
+            }
+        }
+    } else if (currentUploadType === 'link') {
+        const inputUrl = document.getElementById('external-link-url').value.trim();
+        const duplicate = checkDuplicate('url', inputUrl);
+        if (duplicate) {
+            showError(`このリンクは既に追加されています：「${duplicate.title}」`);
+            return;
+        }
+    }
+    
     let videoUrl = '', thumbnail = '', source = '';
     if (currentUploadType === 'url') {
         const inputUrl = document.getElementById('video-url').value.trim();
