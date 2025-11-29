@@ -3,7 +3,7 @@
 // ╚════════════════════════════════════════════════════════════════╝
 
 const CONFIG = {
-    GAS_URL: 'https://script.google.com/macros/s/AKfycbwy9jaqAGkOHXSsEsQYd7__P9v9gx4DjRt-RFrMVriC9fM34CHrwltLEUMclPI0lv_D6A/exec'
+    GAS_URL: 'https://script.google.com/macros/s/AKfycbwnD8_5iWyrWMbQQNQs5EEUHjRrSy0LooMx5URk52B-WicWuGOwY8QpSasjq9tIw4Rbww/exec'
 };
 
 // ╔════════════════════════════════════════════════════════════════╗
