@@ -3,7 +3,7 @@
 // ╚════════════════════════════════════════════════════════════════╝
 
 const CONFIG = {
-    GAS_URL: 'https://script.google.com/macros/s/AKfycbxuoKCuuxWqK-JqFx9JmVMobcu8wffaVk14_BGgBasy5Iz1wuC04slKKBEgHYF8WYHk8A/exec'
+    GAS_URL: 'https://script.google.com/macros/s/AKfycbz6oCmwzh0clli3n_CStV6OnIF3mzvmdWgjO2mTqDCjf8V5qKuOypQmv0UaryyUgSHysA/exec'
 };
 
 // ╔════════════════════════════════════════════════════════════════╗
@@ -46,6 +46,11 @@ const CACHE_DURATION = 5 * 60 * 1000;
 function isExternalLink(video) {
     const source = video.source || 'unknown';
     const url = video.videoUrl || '';
+    
+    // source が 'external' の場合は外部リンク
+    if (source === 'external') {
+        return true;
+    }
     
     // YouTube, Vimeo, Dropboxは動画として扱う
     if (source === 'youtube' || source === 'vimeo' || source === 'dropbox') {
@@ -1258,9 +1263,105 @@ function selectUploadType(type) {
     currentUploadType = type;
     document.querySelectorAll('.upload-type-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`.${type}-type`).classList.add('active');
-    document.getElementById('url-input').style.display = type === 'url' ? 'block' : 'none';
-    document.getElementById('file-input').style.display = type === 'dropbox' ? 'block' : 'none';
-    document.getElementById('thumbnail-url-group').style.display = type === 'dropbox' ? 'block' : 'none';
+    
+    // 全入力エリアを非表示
+    document.getElementById('url-input').style.display = 'none';
+    document.getElementById('file-input').style.display = 'none';
+    document.getElementById('link-input').style.display = 'none';
+    document.getElementById('thumbnail-url-group').style.display = 'none';
+    document.getElementById('link-thumbnail-group').style.display = 'none';
+    
+    // 選択されたタイプに応じて表示
+    if (type === 'url') {
+        document.getElementById('url-input').style.display = 'block';
+    } else if (type === 'dropbox') {
+        document.getElementById('file-input').style.display = 'block';
+        document.getElementById('thumbnail-url-group').style.display = 'block';
+    } else if (type === 'link') {
+        document.getElementById('link-input').style.display = 'block';
+        document.getElementById('link-thumbnail-group').style.display = 'block';
+    }
+}
+
+// 外部リンクURL変更時（OGP自動取得）
+let ogpFetchTimeout = null;
+async function onExternalLinkChange() {
+    const url = document.getElementById('external-link-url').value.trim();
+    const preview = document.getElementById('link-thumbnail-preview');
+    const img = document.getElementById('link-thumbnail-img');
+    const thumbnailInput = document.getElementById('link-thumbnail-url');
+    const titleInput = document.getElementById('video-title');
+    const featuresInput = document.getElementById('video-features');
+    
+    if (!url) {
+        preview.classList.remove('active');
+        return;
+    }
+    
+    // URL形式チェック
+    try {
+        new URL(url);
+    } catch (e) {
+        return;
+    }
+    
+    // デバウンス処理（入力が止まってから500ms後に取得）
+    if (ogpFetchTimeout) clearTimeout(ogpFetchTimeout);
+    ogpFetchTimeout = setTimeout(async () => {
+        try {
+            // ローディング表示
+            preview.classList.add('active');
+            img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="60"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23888" font-size="12">読み込み中...</text></svg>';
+            
+            // GAS経由でOGP情報を取得
+            const ogpData = await fetchJsonp(CONFIG.GAS_URL + '?action=fetchOgp&url=' + encodeURIComponent(url));
+            
+            if (ogpData && ogpData.success) {
+                // サムネイルを設定
+                if (ogpData.thumbnail) {
+                    thumbnailInput.value = ogpData.thumbnail;
+                    img.src = ogpData.thumbnail;
+                    img.onload = () => preview.classList.add('active');
+                    img.onerror = () => {
+                        preview.classList.remove('active');
+                        thumbnailInput.value = '';
+                    };
+                } else {
+                    preview.classList.remove('active');
+                }
+                
+                // タイトルを設定（空の場合のみ）
+                if (ogpData.title && !titleInput.value) {
+                    titleInput.value = ogpData.title;
+                }
+                
+                // 説明を設定（空の場合のみ）
+                if (ogpData.description && !featuresInput.value) {
+                    featuresInput.value = ogpData.description;
+                }
+            } else {
+                preview.classList.remove('active');
+            }
+        } catch (error) {
+            console.error('OGP取得エラー:', error);
+            preview.classList.remove('active');
+        }
+    }, 500);
+}
+
+// リンクサムネイル変更時
+function onLinkThumbnailChange() {
+    const url = document.getElementById('link-thumbnail-url').value.trim();
+    const preview = document.getElementById('link-thumbnail-preview');
+    const img = document.getElementById('link-thumbnail-img');
+    
+    if (url) {
+        img.src = url;
+        img.onload = () => preview.classList.add('active');
+        img.onerror = () => preview.classList.remove('active');
+    } else {
+        preview.classList.remove('active');
+    }
 }
 
 function extractYoutubeId(url) {
@@ -1454,20 +1555,26 @@ async function submitVideo() {
     const features = document.getElementById('video-features').value.trim();
     const category = document.getElementById('video-category').value;
     if (!title) { showError('タイトルを入力してください'); return; }
-    if (!features) { showError('動画の特徴を入力してください'); return; }
+    if (!features) { showError('特徴・メモを入力してください'); return; }
     if (!category) { showError('カテゴリを選択してください'); return; }
     let videoUrl = '', thumbnail = '', source = '';
     if (currentUploadType === 'url') {
         const inputUrl = document.getElementById('video-url').value.trim();
         if (!inputUrl) { showError('動画URLを入力してください'); return; }
-        if (!detectedPlatform) { showError('有効なURLを入力してください'); return; }
+        if (!detectedPlatform) { showError('有効なYouTube/VimeoのURLを入力してください'); return; }
         videoUrl = detectedPlatform.embedUrl;
         thumbnail = detectedPlatform.thumbnail || '';
         source = detectedPlatform.type;
-    } else {
+    } else if (currentUploadType === 'dropbox') {
         if (!selectedFile) { showError('動画ファイルを選択してください'); return; }
         source = 'dropbox';
         thumbnail = document.getElementById('thumbnail-url').value.trim() || generatedThumbnail || '';
+    } else if (currentUploadType === 'link') {
+        const inputUrl = document.getElementById('external-link-url').value.trim();
+        if (!inputUrl) { showError('リンクURLを入力してください'); return; }
+        videoUrl = inputUrl;
+        thumbnail = document.getElementById('link-thumbnail-url').value.trim() || '';
+        source = 'external';
     }
     const submitBtn = document.getElementById('submit-btn');
     const progress = document.getElementById('upload-progress');
@@ -1521,6 +1628,7 @@ function resetUploadForm() {
     document.getElementById('submit-btn').disabled = false;
     document.getElementById('video-url').value = '';
     document.getElementById('video-title').value = '';
+    document.getElementById('video-title').placeholder = 'タイトルを入力';
     document.getElementById('video-features').value = '';
     document.getElementById('video-category').value = '';
     document.getElementById('thumbnail-url').value = '';
@@ -1529,6 +1637,11 @@ function resetUploadForm() {
     document.getElementById('platform-badge').style.display = 'none';
     detectedPlatform = null;
     generatedThumbnail = null;
+    // 外部リンク入力をリセット
+    document.getElementById('external-link-url').value = '';
+    document.getElementById('link-thumbnail-url').value = '';
+    document.getElementById('link-thumbnail-preview').classList.remove('active');
+    document.getElementById('link-thumbnail-img').src = '';
     const preview = document.getElementById('thumbnail-preview');
     if (preview) { preview.style.display = 'none'; preview.innerHTML = '<p style="font-size:12px;color:#888;margin-bottom:4px;">自動生成されたサムネイル:</p>'; }
     removeFile();
