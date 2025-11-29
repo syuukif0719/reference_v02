@@ -511,6 +511,17 @@ main {
 .source-badge.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
 .source-badge.dropbox { background: var(--dropbox); }
 .source-badge.unknown { background: #666; }
+.source-badge.external { background: #9c27b0; text-transform: none; }
+
+/* 外部リンクカードのスタイル */
+.video-card.external-link .play-btn.link-btn {
+    background: rgba(156, 39, 176, 0.9);
+}
+
+.video-card.external-link:hover .play-btn.link-btn {
+    background: #9c27b0;
+    transform: scale(1.1);
+}
 
 .card-content { padding: 0.75rem; }
 
