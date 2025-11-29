@@ -1365,6 +1365,11 @@ async function onExternalLinkChange() {
     const img = document.getElementById('link-thumbnail-img');
     const thumbnailInput = document.getElementById('link-thumbnail-url');
     const titleInput = document.getElementById('video-title');
+    const warning = document.getElementById('link-duplicate-warning');
+    const warningTitle = document.getElementById('link-duplicate-title');
+    
+    // 重複警告をリセット
+    warning.classList.remove('active');
     
     if (!url) {
         preview.classList.remove('active');
@@ -1376,6 +1381,13 @@ async function onExternalLinkChange() {
         new URL(url);
     } catch (e) {
         return;
+    }
+    
+    // 重複チェック（即時）
+    const duplicate = checkDuplicate('url', url);
+    if (duplicate) {
+        warningTitle.textContent = `「${duplicate.title}」`;
+        warning.classList.add('active');
     }
     
     // デバウンス処理（入力が止まってから500ms後に取得）
@@ -1449,6 +1461,12 @@ async function onVideoUrlChange() {
     const preview = document.getElementById('url-thumbnail-preview');
     const img = document.getElementById('url-thumbnail-img');
     const badge = document.getElementById('platform-badge');
+    const warning = document.getElementById('url-duplicate-warning');
+    const warningTitle = document.getElementById('url-duplicate-title');
+    
+    // 重複警告をリセット
+    warning.classList.remove('active');
+    
     const platform = await detectPlatform(url);
     detectedPlatform = platform;
     if (platform) {
@@ -1462,6 +1480,13 @@ async function onVideoUrlChange() {
             preview.classList.remove('active');
         }
         await fetchVideoTitle(url, platform);
+        
+        // 重複チェック
+        const duplicate = checkDuplicate('url', url);
+        if (duplicate) {
+            warningTitle.textContent = `「${duplicate.title}」`;
+            warning.classList.add('active');
+        }
     } else {
         badge.style.display = 'none';
         preview.classList.remove('active');
@@ -1603,6 +1628,18 @@ function handleFile(file) {
     document.getElementById('selected-file').style.display = 'flex';
     document.getElementById('drop-area').style.display = 'none';
     hideError();
+    
+    // 重複チェック
+    const warning = document.getElementById('file-duplicate-warning');
+    const warningTitle = document.getElementById('file-duplicate-title');
+    const duplicate = checkDuplicate('filename', file.name);
+    if (duplicate) {
+        warningTitle.textContent = `「${duplicate.title}」`;
+        warning.classList.add('active');
+    } else {
+        warning.classList.remove('active');
+    }
+    
     const titleInput = document.getElementById('video-title');
     if (!titleInput.value.trim()) {
         const titleFromFile = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1690,22 +1727,13 @@ async function submitVideo() {
     if (!features) { showError('特徴・メモを入力してください'); return; }
     if (!category) { showError('カテゴリを選択してください'); return; }
     
-    // 重複チェック
+    // 重複チェック（URL/リンクはブロック、ファイルは警告表示済みなので続行可能）
     if (currentUploadType === 'url') {
         const inputUrl = document.getElementById('video-url').value.trim();
         const duplicate = checkDuplicate('url', inputUrl);
         if (duplicate) {
             showError(`この動画は既に追加されています：「${duplicate.title}」`);
             return;
-        }
-    } else if (currentUploadType === 'dropbox') {
-        if (selectedFile) {
-            const duplicate = checkDuplicate('filename', selectedFile.name);
-            if (duplicate) {
-                if (!confirm(`同じファイル名の動画が既にあります：「${duplicate.title}」\n\nそれでもアップロードしますか？`)) {
-                    return;
-                }
-            }
         }
     } else if (currentUploadType === 'link') {
         const inputUrl = document.getElementById('external-link-url').value.trim();
@@ -1715,6 +1743,7 @@ async function submitVideo() {
             return;
         }
     }
+    // ファイルの重複は警告表示済みで、ユーザーが続行を選択可能
     
     let videoUrl = '', thumbnail = '', source = '';
     if (currentUploadType === 'url') {
