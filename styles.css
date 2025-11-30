@@ -285,7 +285,30 @@ main {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #444 transparent;
+}
+
+.filters::-webkit-scrollbar {
+    height: 4px;
+}
+
+.filters::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.filters::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 2px;
+}
+
+.filters::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .search-bar {
@@ -350,6 +373,8 @@ main {
     cursor: pointer;
     transition: all 0.3s;
     border-radius: 2rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .filter-btn:hover,
